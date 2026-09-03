@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#dff4f7">
+  <title>食物保鲜实验室——怎样减慢食物变质的速度</title>
+  <style>
+    :root {
+      --ink:#18343b; --muted:#587078; --paper:#fffdf6; --sky:#dff4f7; --line:#31545d;
+      --blue:#2188d9; --blue-soft:#dceffd; --orange:#f18734; --orange-soft:#ffead8;
+      --yellow:#ffd85e; --green:#4ea76c; --red:#d95555; --shadow:0 4px 0 rgba(31,69,77,.14);
+    }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; }
+    body { display:grid; place-items:center; background:#b8d8de; color:var(--ink); font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; }
+    button,input { font:inherit; }
+    button { color:inherit; }
+    button:focus-visible,input:focus-visible { outline:3px solid #1b6faf; outline-offset:2px; }
+    .app {
+      width:min(100vw,177.777vh); height:min(100vh,56.25vw); min-width:760px; min-height:427px;
+      display:grid; grid-template-rows:9.2% 80.2% 10.6%; position:relative; overflow:hidden;
+      background:linear-gradient(#eafafd 0 58%,#e8d5ac 58% 100%); box-shadow:0 0 24px rgba(21,53,61,.28);
+    }
+    .topbar { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 1.5%; background:#fffdf8; border-bottom:2px solid #9bbbc1; z-index:4; }
+    h1 { margin:0; font-size:clamp(17px,2vw,29px); font-weight:800; letter-spacing:.02em; white-space:nowrap; }
+    .tabs { display:flex; align-self:end; gap:7px; height:82%; align-items:end; }
+    .tab { border:2px solid var(--line); border-bottom:0; border-radius:13px 13px 0 0; background:#dbe7e8; padding:.65em 1.05em .58em; font-weight:700; cursor:pointer; box-shadow:inset 0 -3px rgba(0,0,0,.06); white-space:nowrap; }
+    .tab[aria-selected="true"] { background:var(--yellow); transform:translateY(2px); }
+    .top-actions { justify-self:end; display:flex; gap:8px; }
+    .icon-btn,.reset-btn { width:clamp(36px,3.4vw,48px); aspect-ratio:1; border:2px solid var(--line); border-radius:50%; background:#fff; cursor:pointer; font-weight:900; box-shadow:var(--shadow); }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,29%); gap:1%; padding:1%; min-height:0; }
+    .lab { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+    .mode-strip { display:flex; align-items:center; gap:10px; min-height:33px; padding:0 8px 6px; font-size:clamp(11px,1.1vw,16px); font-weight:700; }
+    .mode-tip { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .switch { display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; }
+    .switch input { width:20px; height:20px; accent-color:var(--green); }
+    .groups { display:grid; grid-template-columns:1fr 1fr; gap:1.2%; min-height:0; }
+    .group-card { min-width:0; min-height:0; display:grid; grid-template-rows:auto 44% auto 1fr; background:rgba(255,253,246,.95); border:3px solid var(--group); border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+    .group-head { color:#fff; background:var(--group); display:flex; align-items:center; justify-content:space-between; padding:5px 10px; font-weight:800; font-size:clamp(13px,1.3vw,19px); }
+    .condition-mini { font-size:.72em; font-weight:600; }
+    .food-stage { position:relative; display:grid; place-items:center; overflow:hidden; background:linear-gradient(#dff6fa 0 70%,#c79e64 70% 75%,#dfbd86 75%); }
+    .food-box { width:76%; height:76%; position:relative; display:grid; place-items:center; border:3px solid rgba(40,83,92,.65); border-radius:12px 12px 21px 21px; background:rgba(235,251,255,.39); box-shadow:inset 0 -12px rgba(151,214,224,.2); }
+    .lid { position:absolute; z-index:3; left:-5%; width:110%; height:12%; top:-5%; border:3px solid var(--line); border-radius:7px; background:rgba(215,244,248,.82); transition:.3s; }
+    .food-box[data-pack="open"] .lid { transform:translate(23%,-180%) rotate(12deg); opacity:.55; }
+    .food-box[data-pack="covered"] .lid { transform:translateY(-7px); }
+    .food-box[data-pack="sealed"] .lid { transform:none; background:rgba(156,224,234,.8); box-shadow:0 3px var(--group); }
+    .bread-svg { width:72%; height:82%; filter:drop-shadow(0 5px 2px rgba(62,53,32,.2)); }
+    .bread-shape { stroke:#8d682f; stroke-width:5; transition:fill .45s; }
+    .mold { transform-box:fill-box; transform-origin:center; transition:opacity .45s,transform .45s; }
+    .condensation { position:absolute; inset:8%; pointer-events:none; opacity:0; transition:.3s; }
+    .food-box[data-humidity="humid"] .condensation { opacity:.8; }
+    .drop { position:absolute; width:6px; height:9px; border-radius:55% 55% 60% 60%; background:#70c8db; }
+    .micro-view { position:absolute; right:3%; top:5%; width:34%; aspect-ratio:1; border-radius:50%; border:4px solid #fff; outline:3px solid var(--line); background:#f7f0c9; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,.18); transform:scale(0); transition:.25s; z-index:5; }
+    .micro-view.show { transform:scale(1); }
+    .micro-dot { position:absolute; border-radius:50%; background:#5b9b5a; border:1px solid #315c39; animation:wobble 2.2s ease-in-out infinite alternate; }
+    @keyframes wobble { to { transform:translate(3px,-2px) scale(1.15); } }
+    .seal-note { position:absolute; bottom:2%; left:50%; transform:translateX(-50%); padding:2px 7px; border-radius:10px; background:rgba(255,255,255,.88); font-size:clamp(9px,.72vw,11px); white-space:nowrap; }
+    .feedback { padding:5px 9px; background:#fff; border-top:1px solid #c8d8da; }
+    .status-row { display:flex; justify-content:space-between; align-items:center; font-size:clamp(10px,.95vw,14px); font-weight:700; margin-bottom:3px; }
+    .status-pill { padding:2px 8px; border-radius:999px; background:#e1f4e5; }
+    .status-pill.bad { color:#fff; background:var(--red); }
+    .meter { height:9px; overflow:hidden; border-radius:8px; background:#e0e7e7; }
+    .meter-fill { height:100%; width:0; background:linear-gradient(90deg,#58b878,#f0c541,#d95555); transition:width .45s; }
+    .controls { display:grid; align-content:start; gap:4px; padding:5px 8px 7px; overflow:hidden; }
+    .control-line { display:grid; grid-template-columns:3.4em 1fr; align-items:center; gap:5px; }
+    .control-label { font-size:clamp(10px,.85vw,13px); font-weight:800; }
+    .option-row { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
+    .option { min-width:0; min-height:31px; border:1.5px solid #779298; border-radius:8px; background:#f2f7f7; padding:2px 3px; cursor:pointer; font-size:clamp(9px,.72vw,12px); line-height:1.12; font-weight:700; }
+    .option:hover { background:#fff5c9; }
+    .option[aria-pressed="true"] { color:#fff; border-color:var(--line); background:var(--group); box-shadow:inset 0 -3px rgba(0,0,0,.12); }
+    .option:disabled { cursor:not-allowed; opacity:.56; }
+    .option.diff-warning { animation:warn .7s 4; box-shadow:0 0 0 4px var(--yellow); }
+    @keyframes warn { 50% { transform:scale(1.05); } }
+    .side { min-height:0; display:grid; grid-template-rows:auto 1fr; gap:7px; }
+    .challenge-panel { display:none; background:#fff8d9; border:2px solid #a98316; border-radius:14px; padding:7px 9px; box-shadow:var(--shadow); }
+    .challenge-panel.show { display:block; }
+    .challenge-title { font-weight:800; margin-bottom:4px; }
+    .task { display:flex; align-items:flex-start; gap:6px; font-size:clamp(10px,.78vw,12px); line-height:1.25; margin:2px 0; }
+    .star { color:#9e8417; filter:grayscale(1); }
+    .task.done .star { color:#f4b800; filter:none; animation:pop .6s; }
+    @keyframes pop { 50% { transform:scale(1.6) rotate(15deg); } }
+    .records { min-height:0; display:grid; grid-template-rows:auto 1fr; overflow:hidden; background:rgba(255,253,246,.97); border:2px solid var(--line); border-radius:15px; box-shadow:var(--shadow); }
+    .records-head { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; background:#eff6f6; border-bottom:1px solid #b8cccc; font-weight:800; }
+    .collapse-btn { border:1px solid #78949b; border-radius:7px; background:#fff; cursor:pointer; }
+    .records-body { min-height:0; display:grid; grid-template-rows:43% 31% 1fr; padding:5px 7px 7px; gap:5px; }
+    .records.collapsed { align-self:start; }
+    .records.collapsed .records-body { display:none; }
+    .chart-wrap { min-height:0; position:relative; }
+    canvas { width:100%; height:100%; display:block; background:#fff; border:1px solid #bacccd; border-radius:7px; }
+    .legend { position:absolute; right:7px; top:4px; display:flex; gap:7px; padding:2px 5px; background:rgba(255,255,255,.86); font-size:clamp(9px,.72vw,11px); }
+    .legend i { display:inline-block; width:11px; height:3px; vertical-align:middle; margin-right:2px; }
+    .table-wrap { min-height:0; overflow:auto; border-top:1px solid #c6d5d7; border-bottom:1px solid #c6d5d7; }
+    table { width:100%; border-collapse:collapse; font-size:clamp(9px,.7vw,11px); text-align:center; }
+    th { position:sticky; top:0; background:#e9f3f4; }
+    th,td { padding:2px 3px; border-bottom:1px solid #dfe8e9; }
+    .conclusion { min-height:0; overflow:auto; padding:5px 7px; border-radius:8px; background:#eef7e9; font-size:clamp(10px,.78vw,12px); line-height:1.35; }
+    .conclusion strong { display:block; margin-bottom:2px; }
+    .timebar { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:1.5%; padding:.65% 1.4%; background:#fffdf8; border-top:2px solid #95b4ba; z-index:3; }
+    .time-actions,.speed-actions { display:flex; align-items:center; gap:6px; }
+    .action { min-width:clamp(40px,4vw,60px); min-height:36px; padding:5px 9px; border:2px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; box-shadow:0 3px 0 rgba(31,69,77,.15); font-weight:800; }
+    .action.primary { color:#fff; background:var(--green); }
+    .action:disabled { opacity:.5; cursor:not-allowed; }
+    .timeline { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-width:0; }
+    .day-readout { font-weight:900; white-space:nowrap; font-size:clamp(13px,1.25vw,19px); }
+    .day-track { height:15px; border-radius:9px; background:#dbe6e7; overflow:hidden; position:relative; }
+    .day-fill { width:0; height:100%; background:linear-gradient(90deg,#62b4df,#ffd65b); transition:width .35s; }
+    .speed { border:1.5px solid #718e95; background:#eef5f5; padding:4px 7px; cursor:pointer; font-size:clamp(9px,.75vw,12px); }
+    .speed:first-of-type { border-radius:8px 0 0 8px; }
+    .speed:last-of-type { border-radius:0 8px 8px 0; }
+    .speed[aria-pressed="true"] { color:#fff; background:var(--line); }
+    .sync-btn { border:1.5px solid #877118; border-radius:8px; background:#fff4b2; padding:4px 8px; cursor:pointer; font-weight:700; white-space:nowrap; }
+    .toast { position:absolute; left:50%; bottom:12%; z-index:20; max-width:70%; transform:translate(-50%,20px); padding:10px 16px; border:2px solid var(--line); border-radius:12px; background:#fffdf5; box-shadow:0 6px 18px rgba(0,0,0,.22); font-weight:800; opacity:0; pointer-events:none; transition:.25s; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    .toast.error { background:#fff0d1; border-color:#b27612; }
+    .overlay { position:absolute; inset:0; z-index:30; display:grid; place-items:center; background:rgba(24,52,59,.48); backdrop-filter:blur(2px); }
+    .overlay[hidden] { display:none; }
+    .welcome { width:70%; padding:2.2%; background:#fffdf6; border:3px solid var(--line); border-radius:22px; box-shadow:0 10px 30px rgba(0,0,0,.28); text-align:center; }
+    .welcome h2 { margin:0 0 4px; font-size:clamp(20px,2.5vw,36px); }
+    .welcome p { margin:0 0 2%; color:var(--muted); }
+    .entry-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2%; }
+    .entry { border:3px solid var(--line); border-radius:16px; background:#eef8f8; padding:8% 5%; cursor:pointer; box-shadow:var(--shadow); }
+    .entry:hover { transform:translateY(-3px); background:#fff3b6; }
+    .entry-icon { display:block; font-size:clamp(30px,4.2vw,62px); margin-bottom:5px; }
+    .entry strong { display:block; font-size:clamp(13px,1.4vw,21px); }
+    .entry small { display:block; margin-top:4px; color:var(--muted); }
+    .modal { width:min(650px,72%); max-height:80%; overflow:auto; padding:20px 24px; background:#fffdf6; border:3px solid var(--line); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.3); }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; }
+    .modal h2 { margin:0; }
+    .modal li { margin:.55em 0; }
+    .safety { padding:9px 12px; border-radius:10px; background:#fff0cf; border-left:6px solid #e09625; }
+    .close { border:2px solid var(--line); border-radius:50%; width:36px; height:36px; background:#fff; cursor:pointer; }
+    .confetti { position:absolute; inset:0; pointer-events:none; z-index:22; overflow:hidden; }
+    .confetti span { position:absolute; top:-8%; font-size:24px; animation:fall 1.8s ease-in forwards; }
+    @keyframes fall { to { transform:translateY(820px) rotate(420deg); opacity:0; } }
+    @media (max-aspect-ratio:4/3) {
+      .app { min-width:0; width:100vw; height:56.25vw; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+  </style>
+</head>
+<body>
+  <main class="app" id="app" aria-label="食物保鲜实验室">
+    <header class="topbar">
+      <h1>食物保鲜实验室</h1>
+      <nav class="tabs" role="tablist" aria-label="实验模式">
+        <button class="tab" role="tab" aria-selected="false" data-mode="free">自由探索</button>
+        <button class="tab" role="tab" aria-selected="true" data-mode="compare">对比实验</button>
+        <button class="tab" role="tab" aria-selected="false" data-mode="challenge">保鲜挑战</button>
+      </nav>
+      <div class="top-actions">
+        <button class="icon-btn" id="homeBtn" aria-label="返回模式选择">⌂</button>
+        <button class="icon-btn" id="helpBtn" aria-label="打开帮助">?</button>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <section class="lab" aria-label="实验台">
+        <div class="mode-strip">
+          <span class="mode-tip" id="modeTip">一次只改变一个条件，进行公平比较。</span>
+          <button class="sync-btn" id="syncBtn">保持其他条件相同</button>
+          <label class="switch"><input type="checkbox" id="microToggle"> 微生物观察窗</label>
+        </div>
+        <div class="groups" id="groups"></div>
+      </section>
+
+      <aside class="side">
+        <section class="challenge-panel" id="challengePanel" aria-label="挑战任务">
+          <div class="challenge-title">保鲜挑战</div>
+          <div class="task" data-task="1"><span class="star">★</span><span>第7天时，至少一组仍未明显变质</span></div>
+          <div class="task" data-task="2"><span class="star">★</span><span>只改变温度，找出变质较慢的条件</span></div>
+          <div class="task" data-task="3"><span class="star">★</span><span>用两轮实验找到两种保鲜方法</span></div>
+        </section>
+        <section class="records" id="records">
+          <div class="records-head"><span>实验记录</span><button class="collapse-btn" id="collapseBtn" aria-expanded="true">收起</button></div>
+          <div class="records-body">
+            <div class="chart-wrap">
+              <canvas id="chart" role="img" aria-label="A组和B组随时间变化的变质程度折线图"></canvas>
+              <div class="legend"><span><i style="background:#2188d9"></i>A组</span><span><i style="background:#f18734"></i>B组</span></div>
+            </div>
+            <div class="table-wrap">
+              <table aria-label="实验数据表">
+                <thead><tr><th>天数</th><th>A组程度</th><th>A组状态</th><th>B组程度</th><th>B组状态</th></tr></thead>
+                <tbody id="dataBody"></tbody>
+              </table>
+            </div>
+            <div class="conclusion" id="conclusion" aria-live="polite"><strong>观察结论</strong><span>设置条件后，点击播放或单步前进。</span></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <footer class="timebar">
+      <div class="time-actions">
+        <button class="action" id="rewindBtn" aria-label="回到第0天">⏮ 第0天</button>
+        <button class="action primary" id="playBtn" aria-label="播放实验">▶ 播放</button>
+        <button class="action" id="stepBtn" aria-label="前进一天">+1天</button>
+      </div>
+      <div class="timeline">
+        <div class="day-readout" id="dayReadout">第 0 天 / 14 天</div>
+        <div class="day-track" role="progressbar" aria-label="实验时间" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0"><div class="day-fill" id="dayFill"></div></div>
+      </div>
+      <div class="speed-actions" aria-label="播放速度">
+        <button class="speed" data-speed="slow" aria-pressed="false">慢速</button>
+        <button class="speed" data-speed="normal" aria-pressed="true">正常</button>
+        <button class="speed" data-speed="fast" aria-pressed="false">快速</button>
+        <button class="reset-btn" id="resetBtn" aria-label="重置实验">↻</button>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="alert"></div>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+    <section class="overlay" id="welcomeOverlay">
+      <div class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+        <h2 id="welcomeTitle">食物保鲜实验室</h2>
+        <p>选择一种学习方式，看看什么条件能减慢食物变质。</p>
+        <div class="entry-grid">
+          <button class="entry" data-entry="free"><span class="entry-icon">🔍</span><strong>自由探索</strong><small>自由组合各种条件</small></button>
+          <button class="entry" data-entry="compare"><span class="entry-icon">⚖</span><strong>对比实验</strong><small>一次只改变一个条件</small></button>
+          <button class="entry" data-entry="challenge"><span class="entry-icon">★</span><strong>保鲜挑战</strong><small>完成三个科学任务</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="overlay" id="helpOverlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+        <div class="modal-head"><h2 id="helpTitle">实验帮助</h2><button class="close" id="closeHelp" aria-label="关闭帮助">×</button></div>
+        <ol>
+          <li><strong>怎样进行对比实验？</strong>让A、B两组只有一个条件不同，其他条件相同，再观察14天。</li>
+          <li><strong>为什么只改变一个条件？</strong>这样才能判断实验结果究竟是由哪个条件造成的。</li>
+          <li><strong>图表怎么看？</strong>曲线越低，表示同一天食物的变质程度越小。</li>
+          <li><strong>密封后会永远新鲜吗？</strong>不会。低温、干燥和密封只能减慢变质，不能保证永远安全。</li>
+        </ol>
+        <p class="safety"><strong>安全提醒：</strong>这是虚拟仿真实验。现实中不要触摸、品尝或近距离闻已经变质、发霉的食物，应请成年人安全处理。</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    'use strict';
+    const GROUPS = ['A','B'];
+    const META = {
+      temp:{ label:'温度', options:[['4','❄ 4℃'],['15','◒ 15℃'],['25','☀ 25℃'],['35','♨ 35℃']] },
+      humidity:{ label:'湿度', options:[['dry','◇ 干燥'],['normal','◐ 一般'],['humid','● 潮湿']] },
+      pack:{ label:'包装', options:[['open','⌒ 敞开'],['covered','▱ 加盖'],['sealed','▣ 密封']] }
+    };
+    const NAMES = {
+      temp:{'4':'冷藏4℃','15':'阴凉15℃','25':'室温25℃','35':'温暖35℃'},
+      humidity:{dry:'干燥',normal:'一般湿度',humid:'潮湿'},
+      pack:{open:'敞开',covered:'加盖',sealed:'密封'}
+    };
+    const FACTORS = {
+      temp:{'4':.22,'15':.55,'25':1,'35':1.45},
+      humidity:{dry:.5,normal:1,humid:1.35},
+      pack:{open:1,covered:.75,sealed:.5}
+    };
+    const COLORS = { A:'#2188d9', B:'#f18734' };
+    const state = {
+      mode:'compare', day:0, running:false, speed:'normal', timer:null, microscope:false,
+      settings:{ A:{temp:'25',humidity:'normal',pack:'open'}, B:{temp:'4',humidity:'normal',pack:'open'} },
+      data:{ A:[0], B:[0] }, lastChanged:{group:'B',key:'temp'},
+      challengeDone:new Set(), evidence:new Set(), finishedExperiments:0
+    };
+
+    const $ = (s,root=document) => root.querySelector(s);
+    const $$ = (s,root=document) => [...root.querySelectorAll(s)];
+    const groupsEl = $('#groups');
+    const toastEl = $('#toast');
+    let toastTimer;
+
+    function breadSvg(group) {
+      const spots = [
+        [74,70,9],[112,57,7],[144,84,11],[91,106,6],[135,122,8],[62,127,10],
+        [165,54,6],[175,116,9],[104,145,8],[150,151,11],[50,91,6],[184,86,7]
+      ].map((p,i)=>`<circle class="mold" data-spot="${i}" cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="${i%2?'#66835c':'#4f7655'}" opacity="0"/>`).join('');
+      return `<svg class="bread-svg" viewBox="0 0 230 190" role="img" aria-label="${group}组面包片">
+        <path class="bread-shape" d="M42 176 Q24 169 29 145 L37 67 Q39 47 58 42 Q74 16 106 31 Q132 9 157 35 Q193 32 199 62 L207 145 Q211 171 190 178 Z" fill="#f5d68a"/>
+        <path d="M48 165 Q36 158 41 141 L48 75 Q50 59 65 56 Q79 37 104 47 Q128 29 149 51 Q180 47 188 70 L195 143 Q199 160 183 166 Z" fill="none" stroke="#e3b968" stroke-width="3" opacity=".8"/>
+        ${spots}
+      </svg>`;
+    }
+
+    function renderGroup(group) {
+      const color = COLORS[group];
+      return `<article class="group-card" data-group-card="${group}" style="--group:${color}">
+        <header class="group-head"><span>${group} 组</span><span class="condition-mini" data-summary="${group}"></span></header>
+        <div class="food-stage">
+          <div class="food-box" data-food-box="${group}" data-pack="open" data-humidity="normal">
+            <div class="lid"></div>${breadSvg(group)}
+            <div class="condensation"><i class="drop" style="left:12%;top:12%"></i><i class="drop" style="left:78%;top:22%"></i><i class="drop" style="left:22%;top:61%"></i><i class="drop" style="left:84%;top:68%"></i></div>
+            <div class="micro-view" data-micro="${group}" aria-hidden="true"></div>
+            <div class="seal-note" data-seal-note="${group}">敞开保存</div>
+          </div>
+        </div>
+        <div class="feedback">
+          <div class="status-row"><span data-status="${group}">新鲜 · 微生物活跃度中</span><span class="status-pill" data-value="${group}">0</span></div>
+          <div class="meter" role="progressbar" aria-label="${group}组变质程度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" data-meter="${group}"></div></div>
+        </div>
+        <div class="controls">${Object.entries(META).map(([key,m])=>`
+          <div class="control-line" data-control-line="${group}-${key}"><span class="control-label">${m.label}</span><div class="option-row">
+            ${m.options.map(([value,label])=>`<button class="option" data-group="${group}" data-key="${key}" data-value="${value}" aria-pressed="false" aria-label="${group}组${m.label}${NAMES[key][value]}">${label}</button>`).join('')}
+          </div></div>`).join('')}</div>
+      </article>`;
+    }
+    groupsEl.innerHTML = GROUPS.map(renderGroup).join('');
+
+    function cloneSettings(obj) { return JSON.parse(JSON.stringify(obj)); }
+    function defaultSettings(mode) {
+      const base = {temp:'25',humidity:'normal',pack:'open'};
+      return mode==='free' ? {A:{...base},B:{...base}} : {A:{...base},B:{...base,temp:'4'}};
+    }
+    function getDiffKeys() { return Object.keys(META).filter(k=>state.settings.A[k]!==state.settings.B[k]); }
+    function dailyRate(group) {
+      const s=state.settings[group];
+      return 6*FACTORS.temp[s.temp]*FACTORS.humidity[s.humidity]*FACTORS.pack[s.pack];
+    }
+    function activity(group) {
+      const r=dailyRate(group); return r<2.2?'低':r<6.4?'中':'高';
+    }
+    function statusOf(v) {
+      if (v<22) return '新鲜'; if (v<48) return '开始变化'; if (v<75) return '明显变质'; return '严重变质';
+    }
+    function interpolateColor(a,b,t) {
+      const pa=a.match(/\w\w/g).map(x=>parseInt(x,16)), pb=b.match(/\w\w/g).map(x=>parseInt(x,16));
+      return '#'+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t).toString(16).padStart(2,'0')).join('');
+    }
+    function deterministicVariation(day,group) { return 1+((((day*17+(group==='A'?3:11))%9)-4)*.008); }
+
+    function updateFood(group) {
+      const v=state.data[group][state.day] ?? 0;
+      const card=$(`[data-group-card="${group}"]`);
+      const bread=$('.bread-shape',card);
+      bread.setAttribute('fill',interpolateColor('f5d68a','aa9568',v/100));
+      $$('.mold',card).forEach((spot,i)=>{
+        const progress=Math.max(0,Math.min(1,(v-(16+i*4.3))/24));
+        spot.style.opacity=progress.toFixed(2); spot.style.transform=`scale(${(.35+progress*.65).toFixed(2)})`;
+      });
+      const s=state.settings[group];
+      const box=$(`[data-food-box="${group}"]`);
+      box.dataset.pack=s.pack; box.dataset.humidity=s.humidity;
+      $(`[data-seal-note="${group}"]`).textContent=NAMES.pack[s.pack]+'保存';
+      $(`[data-summary="${group}"]`).textContent=`${s.temp}℃ · ${NAMES.humidity[s.humidity]} · ${NAMES.pack[s.pack]}`;
+      const stat=statusOf(v), act=activity(group);
+      $(`[data-status="${group}"]`).textContent=`${stat} · 微生物活跃度${act}`;
+      const pill=$(`[data-value="${group}"]`); pill.textContent=Math.round(v); pill.classList.toggle('bad',v>=75);
+      $(`[data-meter="${group}"]`).style.width=v+'%';
+      const meter=$('.meter',card); meter.setAttribute('aria-valuenow',Math.round(v));
+      updateMicrobes(group,v);
+    }
+
+    function updateMicrobes(group,v) {
+      const view=$(`[data-micro="${group}"]`); view.classList.toggle('show',state.microscope);
+      if (!state.microscope) { view.innerHTML=''; return; }
+      const count=Math.max(3,Math.min(24,Math.round(3+dailyRate(group)*.75+v*.13)));
+      view.innerHTML=Array.from({length:count},(_,i)=>{
+        const x=8+((i*37+(group==='A'?9:19))%80), y=8+((i*53+11)%80), size=4+((i*7)%6);
+        const color=i%3===0?'#9a7443':i%2?'#5e9d61':'#799b50';
+        return `<i class="micro-dot" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;background:${color};animation-delay:-${(i*.13).toFixed(2)}s"></i>`;
+      }).join('');
+    }
+
+    function renderOptions() {
+      $$('.option').forEach(btn=>{
+        const selected=state.settings[btn.dataset.group][btn.dataset.key]===btn.dataset.value;
+        btn.setAttribute('aria-pressed',selected?'true':'false');
+        btn.disabled=state.running||state.day>0;
+      });
+    }
+    function updateTimeline() {
+      $('#dayReadout').textContent=`第 ${state.day} 天 / 14 天`;
+      $('#dayFill').style.width=(state.day/14*100)+'%';
+      $('.day-track').setAttribute('aria-valuenow',state.day);
+      $('#playBtn').textContent=state.running?'Ⅱ 暂停':'▶ 播放';
+      $('#playBtn').setAttribute('aria-label',state.running?'暂停实验':'播放实验');
+      $('#stepBtn').disabled=state.running||state.day>=14;
+      $('#rewindBtn').disabled=state.day===0&&!state.running;
+    }
+    function updateTable() {
+      $('#dataBody').innerHTML=Array.from({length:state.day+1},(_,day)=>{
+        const a=state.data.A[day]??0,b=state.data.B[day]??0;
+        return `<tr><td>第${day}天</td><td>${Math.round(a)}</td><td>${statusOf(a)}</td><td>${Math.round(b)}</td><td>${statusOf(b)}</td></tr>`;
+      }).reverse().join('');
+    }
+    function updateConclusion() {
+      const box=$('#conclusion');
+      let text='设置条件后，点击播放或单步前进。';
+      if (state.day>0 && state.day<14) text=`实验进行到第${state.day}天。观察两条曲线的高低变化。`;
+      if (state.day===14) {
+        const diffs=getDiffKeys();
+        if (!diffs.length) text='两组条件完全相同，结果也相同。下一轮可以只改变一个条件再比较。';
+        else if (diffs.length>1 && state.mode==='free') text='这次同时改变了多个条件，因此还不能确定是哪一个条件造成差异。';
+        else if (diffs.length===1) {
+          const key=diffs[0], a=state.data.A[14], b=state.data.B[14], slow=a<=b?'A':'B', fast=slow==='A'?'B':'A';
+          const rule={temp:'温度较低时，食物通常变质更慢',humidity:'环境较干燥时，微生物繁殖通常更慢',pack:'减少与空气接触，一般能减慢部分食物变质'}[key];
+          text=`在其他条件相同时，${slow}组（${NAMES[key][state.settings[slow][key]]}）比${fast}组变质更慢。${rule}。`;
+        }
+      }
+      box.innerHTML=`<strong>观察结论</strong><span>${text}</span>`;
+    }
+    function renderAll() {
+      renderOptions(); GROUPS.forEach(updateFood); updateTimeline(); updateTable(); updateConclusion(); drawChart(); updateChallenges();
+    }
+
+    function validateFairTest() {
+      if (state.mode==='free') return true;
+      const diffs=getDiffKeys();
+      if (diffs.length<=1) return true;
+      $$('.diff-warning').forEach(x=>x.classList.remove('diff-warning'));
+      diffs.forEach(key=>GROUPS.forEach(group=>{
+        const selected=$$('.option').find(b=>b.dataset.group===group&&b.dataset.key===key&&b.getAttribute('aria-pressed')==='true');
+        if(selected) selected.classList.add('diff-warning');
+      }));
+      showToast('对比实验一次只能改变一个条件。请让其他条件保持相同。',true);
+      return false;
+    }
+    function advanceDay() {
+      if (state.day>=14) { stop(); return; }
+      state.day++;
+      GROUPS.forEach(group=>{
+        const previous=state.data[group][state.day-1];
+        state.data[group][state.day]=Math.min(100,previous+dailyRate(group)*deterministicVariation(state.day,group));
+      });
+      if (state.mode==='challenge' && state.day===7 && GROUPS.some(g=>state.data[g][7]<48)) completeTask(1);
+      if (state.day===14) { stop(); finishExperiment(); }
+      renderAll();
+    }
+    function play() {
+      if (state.running) { stop(); renderAll(); return; }
+      if (state.day>=14) { showToast('实验已经完成。点击“第0天”开始新一轮。'); return; }
+      if (!validateFairTest()) return;
+      state.running=true; renderAll();
+      const delays={slow:1600,normal:900,fast:650};
+      state.timer=setInterval(advanceDay,delays[state.speed]);
+    }
+    function stop() { state.running=false; if(state.timer){clearInterval(state.timer);state.timer=null;} }
+    function resetExperiment(preserveChallenge=true) {
+      stop(); state.day=0; state.data={A:[0],B:[0]};
+      if (!preserveChallenge) { state.challengeDone.clear(); state.evidence.clear(); state.finishedExperiments=0; }
+      $$('.diff-warning').forEach(x=>x.classList.remove('diff-warning')); renderAll();
+    }
+    function fullReset() {
+      state.settings=defaultSettings(state.mode); state.lastChanged={group:'B',key:'temp'}; resetExperiment(false);
+      showToast('实验已重置。');
+    }
+    function finishExperiment() {
+      if (state.mode!=='challenge') return;
+      const diffs=getDiffKeys();
+      state.finishedExperiments++;
+      if (diffs.length===1) {
+        const key=diffs[0], a=state.data.A[14], b=state.data.B[14], slow=a<=b?'A':'B', fast=slow==='A'?'B':'A';
+        const rank={temp:{'4':0,'15':1,'25':2,'35':3},humidity:{dry:0,normal:1,humid:2},pack:{sealed:0,covered:1,open:2}}[key];
+        if (rank[state.settings[slow][key]]<rank[state.settings[fast][key]]) state.evidence.add(key);
+        if (key==='temp' && state.evidence.has('temp')) completeTask(2);
+        if (state.evidence.size>=2) completeTask(3);
+      }
+    }
+    function completeTask(n) {
+      if (state.challengeDone.has(n)) return;
+      state.challengeDone.add(n); celebrate(); showToast(`挑战${n}完成！你找到了有力的实验证据。`);
+    }
+    function updateChallenges() {
+      $$('.task').forEach(el=>el.classList.toggle('done',state.challengeDone.has(Number(el.dataset.task))));
+    }
+    function celebrate() {
+      const c=$('#confetti'); c.innerHTML=Array.from({length:18},(_,i)=>`<span style="left:${4+(i*29)%92}%;animation-delay:${(i%6)*.07}s">${i%3?'★':'●'}</span>`).join('');
+      setTimeout(()=>c.innerHTML='',2100);
+    }
+
+    function setMode(mode,fromWelcome=false) {
+      stop(); state.mode=mode; state.settings=defaultSettings(mode); state.lastChanged={group:'B',key:'temp'};
+      state.day=0; state.data={A:[0],B:[0]}; state.challengeDone.clear(); state.evidence.clear(); state.finishedExperiments=0;
+      $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.mode===mode?'true':'false'));
+      const tips={free:'试一试：什么环境下食物变化最快？',compare:'一次只改变一个条件，进行公平比较。',challenge:'完成一轮后回到第0天，换一个条件继续寻找证据。'};
+      $('#modeTip').textContent=tips[mode]; $('#syncBtn').style.display=mode==='free'?'none':'inline-block';
+      $('#challengePanel').classList.toggle('show',mode==='challenge');
+      if(fromWelcome) $('#welcomeOverlay').hidden=true;
+      renderAll();
+    }
+    function syncConditions() {
+      if (state.running) { showToast('请先暂停实验，再调整实验条件。',true); return; }
+      if (state.day>0) { showToast('请先回到第0天，再调整实验条件。',true); return; }
+      const keep=state.lastChanged.key;
+      Object.keys(META).forEach(key=>{ if(key!==keep) state.settings.B[key]=state.settings.A[key]; });
+      renderAll(); showToast(`已保持其他条件相同，只比较“${META[keep].label}”。`);
+    }
+
+    function drawChart() {
+      const canvas=$('#chart'), rect=canvas.getBoundingClientRect();
+      if(rect.width<10||rect.height<10) return;
+      const dpr=Math.min(window.devicePixelRatio||1,2); canvas.width=Math.round(rect.width*dpr); canvas.height=Math.round(rect.height*dpr);
+      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+      const w=rect.width,h=rect.height,L=36,R=10,T=13,B=25,pw=w-L-R,ph=h-T-B;
+      ctx.clearRect(0,0,w,h); ctx.font=`${Math.max(9,Math.min(11,w/30))}px Microsoft YaHei`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.strokeStyle='#d7e2e3'; ctx.lineWidth=1; ctx.fillStyle='#526970';
+      [0,25,50,75,100].forEach(v=>{const y=T+ph-(v/100)*ph;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(v,L-5,y);});
+      [0,7,14].forEach(d=>{const x=L+(d/14)*pw;ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,T+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(d,x,h-11);});
+      ctx.strokeStyle='#31545d';ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,T+ph);ctx.lineTo(w-R,T+ph);ctx.stroke();
+      ctx.save();ctx.translate(9,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('变质程度',0,0);ctx.restore();ctx.fillText('时间/天',L+pw/2,h-3);
+      GROUPS.forEach(group=>{
+        const arr=state.data[group]; ctx.strokeStyle=COLORS[group];ctx.lineWidth=3;ctx.beginPath();
+        arr.forEach((v,d)=>{const x=L+(d/14)*pw,y=T+ph-(v/100)*ph;d?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+        arr.forEach((v,d)=>{const x=L+(d/14)*pw,y=T+ph-(v/100)*ph;ctx.fillStyle=COLORS[group];ctx.beginPath();ctx.arc(x,y,2.3,0,Math.PI*2);ctx.fill();});
+      });
+    }
+    function showToast(message,error=false) {
+      clearTimeout(toastTimer); toastEl.textContent=message; toastEl.classList.toggle('error',error); toastEl.classList.add('show');
+      toastTimer=setTimeout(()=>toastEl.classList.remove('show'),3000);
+    }
+
+    groupsEl.addEventListener('click',e=>{
+      const btn=e.target.closest('.option'); if(!btn) return;
+      if(state.running){showToast('请先暂停实验再修改条件。',true);return;}
+      if(state.day>0){showToast('请先回到第0天，再修改实验条件。',true);return;}
+      state.settings[btn.dataset.group][btn.dataset.key]=btn.dataset.value;
+      state.lastChanged={group:btn.dataset.group,key:btn.dataset.key};
+      $$('.diff-warning').forEach(x=>x.classList.remove('diff-warning')); renderAll();
+    });
+    $('#playBtn').addEventListener('click',play);
+    $('#stepBtn').addEventListener('click',()=>{if(validateFairTest())advanceDay();});
+    $('#rewindBtn').addEventListener('click',()=>resetExperiment(state.mode==='challenge'));
+    $('#resetBtn').addEventListener('click',fullReset);
+    $('#syncBtn').addEventListener('click',syncConditions);
+    $('#microToggle').addEventListener('change',e=>{state.microscope=e.target.checked;GROUPS.forEach(g=>updateFood(g));});
+    $$('.speed').forEach(btn=>btn.addEventListener('click',()=>{
+      const wasRunning=state.running; stop(); state.speed=btn.dataset.speed;
+      $$('.speed').forEach(b=>b.setAttribute('aria-pressed',b===btn?'true':'false')); if(wasRunning)play(); else renderAll();
+    }));
+    $$('.tab').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+    $$('.entry').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.entry,true)));
+    $('#homeBtn').addEventListener('click',()=>{stop();$('#welcomeOverlay').hidden=false;renderAll();});
+    $('#helpBtn').addEventListener('click',()=>$('#helpOverlay').hidden=false);
+    $('#closeHelp').addEventListener('click',()=>$('#helpOverlay').hidden=true);
+    $('#helpOverlay').addEventListener('click',e=>{if(e.target.id==='helpOverlay')e.currentTarget.hidden=true;});
+    $('#collapseBtn').addEventListener('click',e=>{
+      const collapsed=$('#records').classList.toggle('collapsed');e.currentTarget.textContent=collapsed?'展开':'收起';e.currentTarget.setAttribute('aria-expanded',collapsed?'false':'true');setTimeout(drawChart,20);
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#helpOverlay').hidden=true;});
+    new ResizeObserver(drawChart).observe($('#chart'));
+    setMode('compare');
+  })();
+  </script>
+</body>
+</html>
+
